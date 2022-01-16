@@ -2,7 +2,7 @@
 
 DOCKER_COMPOSE_VERSION="1.29.2"
 MYUSER="ec2-user"
-DATA_DISK="/dev/sdb"
+DATA_DISK="/dev/nvme0n1"     
 DATA_MOUNT_POINT="/data"
 DATA_VOLUME_SIZE="400GB"
 
@@ -12,7 +12,7 @@ DATA_VOLUME="data_volume"
 
 # Update system and install tools
 yum update -y
-yum install -y mc git jq
+yum install -y mc git jq tmux htop
 
 # Install docker
 amazon-linux-extras install -y docker
@@ -45,6 +45,8 @@ fi
 
 # Get docker compose file
 
+#Copy latest backup
+
 #Generate docker-compose file to run
 # export 
 env > "$DATA_MOUNT_POINT/env"
@@ -74,8 +76,6 @@ services:
       - --metrics-port=6060
       - --metrics-interface=all
       - --no-color
-      - --warp-barrier=13970800
-      - -l sync=trace
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
@@ -97,7 +97,7 @@ networks:
       com.docker.network.enable_ipv6: "false"
 EOF
 
-docker-compose -f "$DATA_MOUNT_POINT/${docker_compose_filename}" up -d
+#docker-compose -f "$DATA_MOUNT_POINT/${docker_compose_filename}" up -d
 
-docker ps
+#docker ps
 # Run docker-compose services

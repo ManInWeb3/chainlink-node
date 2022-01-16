@@ -21,7 +21,7 @@ locals {
 inputs = {
   create_role = true
   create_instance_profile = true
-
+  role_requires_mfa = false
   role_name = "ServiceRole-EC2"
   role_description = "ServiceRole-EC2"
   trusted_role_services= [
