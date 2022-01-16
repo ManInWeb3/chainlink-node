@@ -1,0 +1,38 @@
+version: '3.8'
+services:
+  openethereum-rinkeby:
+    image: openethereum/openethereum:v3.3.2
+    entrypoint:
+      - /home/openethereum/openethereum
+      - --mode=active
+      - --base-path=/data
+      - --chain $ETHEREUM_CHAIN
+      - --ws-port=8546
+      - --ws-cors=all
+      - --ws-interface=all
+      - --ws-hosts=all
+      - --ws-apis=all
+      - --no-jsonrpc
+      - --metrics
+      - --metrics-port=6060
+      - --metrics-interface=all
+      - --no-color
+      - --warp-barrier=9944040
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /data/:/data/:rw
+    ports:
+    - "8546:8546"
+    - "30303:30303"
+    - "30303:30303/udp"
+    restart: unless-stopped
+    stop_grace_period: 180s
+    networks:
+      host_network:
+
+networks:
+  host_network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
