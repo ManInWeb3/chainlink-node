@@ -8,63 +8,43 @@ include {
 }
 
 locals {
-  // env_vars = merge(
-  //   yamldecode(
-  //     file(find_in_parent_folders("folder.yaml")),
-  //   ),
-  //   yamldecode(
-  //     file(find_in_parent_folders("project.yaml")),
-  //   )
-  // )
+  env = read_terragrunt_config(find_in_parent_folders("environment.hcl"))
 
-  blockchain  = "ethereum" #"ethereum"
-  # network     = ""
-  openethereum_version    = "v3.3.2"
-
-  environment = "dev"
-  # ami_id = "ami-0ed9277fb7eb570c9"
-
-  key_name              = "vlad"
-  image_id              = "ami-0ed9277fb7eb570c9"
-  instance_type         = "t3.large"
-
-  name = "${local.environment}-${local.blockchain}"
-
+  name = "${local.env.inputs.node_to_run}-${local.env.inputs.ethereum_network}-${local.env.inputs.environment}"
 }
-
 dependency "vpc" {
-  config_path = "../vpc"
+  config_path = "../../vpc"
 }
 dependency "sg" {
-  config_path = "../security-group"
+  config_path = "../../security-group"
 }
+dependency "iam" {
+  config_path = "../../ec2-iam-role"
+}
+dependency "nlb" {
+  config_path = "../nlb"
+}
+
 inputs = {
   name = "${local.name}-asg"
-
-  use_name_prefix = false
   create_asg = true
+
   vpc_zone_identifier       = dependency.vpc.outputs.private_subnets
-  #["subnet-01f3827f09ad40727"] #dependency.vpc.outputs.private_subnets
   security_groups        = [dependency.sg.outputs.security_group_id]
-  # ["sg-08f916b1638062a07"] 
-  # [dependency.sg.outputs.security_group_id]
-
-
   min_size                  = 0
   max_size                  = 1
   desired_capacity          = 1
-  // wait_for_capacity_timeout = 0
-  health_check_type         = "EC2"
-
-  # LB
-  // load_balancers = 
-
+  # wait_for_capacity_timeout = 0
+  health_check_type         = "ELB"
+  health_check_grace_period = local.env.inputs.asg_health_check_grace_period # !!!!!!!
+  target_group_arns = dependency.nlb.outputs.target_group_arns
   # Launch template
-  user_data_base64 = base64encode(templatefile("../../templates/userdata.sh", {
-    blockchain              = "${local.blockchain}"
-    docker_compose_filename = "dc-openethereum-${local.blockchain}.yaml"
-    # network                 = "mainnet"
-    openethereum_version    = "${local.openethereum_version}"
+  user_data_base64 = base64encode(templatefile("../../../templates/userdata.sh", {
+    backup_s3            = local.env.inputs.backup_s3
+    node_to_run          = local.env.inputs.node_to_run
+    ethereum_network     = local.env.inputs.ethereum_network
+    openethereum_version = local.env.inputs.openethereum_version
+    chainlink_version    = local.env.inputs.chainlink_version
   }))
 
   use_lt                 = true
@@ -72,9 +52,11 @@ inputs = {
   update_default_version = true
 
   lt_name               = "${local.name}-lt"
-  key_name              = "vlad"
-  image_id              = "ami-0ed9277fb7eb570c9"
-  instance_type         = "t3.large"
+  key_name              = local.env.inputs.key_name
+  image_id              = local.env.inputs.image_id
+  instance_type         = local.env.inputs.instance_type
+
+  iam_instance_profile_arn = dependency.iam.outputs.iam_instance_profile_arn
   block_device_mappings = [
    {
       device_name = "/dev/sdb"
@@ -87,15 +69,26 @@ inputs = {
       }
     }
   ]
-  enable_monitoring = true
+  # enable_monitoring = true
 
   # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-optimized.html
   # ebs_optimized     = true
 
-  // cpu_options = {
-  //   core_count       = 1
-  //   threads_per_core = 1
-  // }
+  # cpu_options = {
+  #   core_count       = 1
+  #   threads_per_core = 1
+  # }
+
+  instance_refresh = {
+    strategy = "Rolling"
+    preferences = {
+      checkpoint_delay       = 600
+      checkpoint_percentages = [35, 70, 100]
+      instance_warmup        = 300
+      min_healthy_percentage = 50
+    }
+    triggers = ["tag"]
+  }
 
   // network_interfaces = [
   //   {
@@ -113,7 +106,7 @@ inputs = {
   // ]
 
   // placement = {
-  //   availability_zone = "${local.region}b"
+  //   availability_zone = "${local.env.inputs.region}b"
   // }
 
   # instance_refresh = {
@@ -134,15 +127,15 @@ inputs = {
   //   },
   //   {
   //     resource_type = "volume"
-  //     tags          = merge({ WhatAmI = "Volume" }, local.tags_as_map)
+  //     tags          = merge({ WhatAmI = "Volume" }, local.env.inputs.tags_as_map)
   //   },
   //   {
   //     resource_type = "spot-instances-request"
-  //     tags          = merge({ WhatAmI = "SpotInstanceRequest" }, local.tags_as_map)
+  //     tags          = merge({ WhatAmI = "SpotInstanceRequest" }, local.env.inputs.tags_as_map)
   //   }
   // ]
 
-  // tags        = local.tags
-  // tags_as_map = local.tags_as_map
+  // tags        = local.env.inputs.tags
+  // tags_as_map = local.env.inputs.tags_as_map
 
 }

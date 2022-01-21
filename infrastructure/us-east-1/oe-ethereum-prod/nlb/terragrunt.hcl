@@ -7,15 +7,9 @@ include {
 }
 
 locals {
-  // env_vars = merge(
-  //   yamldecode(
-  //     file(find_in_parent_folders("folder.yaml")),
-  //   ),
-  //   yamldecode(
-  //     file(find_in_parent_folders("project.yaml")),
-  //   )
-  // )
+  env = read_terragrunt_config(find_in_parent_folders("environment.hcl"))
 
+  name = "${local.env.inputs.node_to_run}-${local.env.inputs.ethereum_network}-${local.env.inputs.environment}"
 }
 dependency "vpc" {
   config_path = "../../vpc"
@@ -25,7 +19,7 @@ dependency "sg" {
 }
 
 inputs = {
-  name = "ethereum-mainnet-prod-nlb"
+  name = "${local.name}-nlb"
 
   vpc_id          = dependency.vpc.outputs.vpc_id
   subnets         = dependency.vpc.outputs.private_subnets
@@ -49,13 +43,13 @@ inputs = {
 
   target_groups = [
     {
-      name             = "nlb-targetgroup-8545"
+      name             = "${local.name}-tcp8545"
       backend_protocol = "TCP"
       backend_port     = 8545
       target_type      = "instance"
     },
     {
-      name             = "nlb-targetgroup-8546"
+      name             = "${local.name}-tcp8546"
       backend_protocol = "TCP"
       backend_port     = 8546
       target_type      = "instance"
@@ -74,5 +68,5 @@ inputs = {
   # ELB attachments
   # number_of_instances = var.number_of_instances
   # instances           = module.ec2_instances.id
-  # tags        = local.tags
+  # tags        = local.environment.tags
 }

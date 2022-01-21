@@ -8,28 +8,9 @@ include {
 }
 
 locals {
-  // env_vars = merge(
-  //   yamldecode(
-  //     file(find_in_parent_folders("folder.yaml")),
-  //   ),
-  //   yamldecode(
-  //     file(find_in_parent_folders("project.yaml")),
-  //   )
-  // )
+  env = read_terragrunt_config(find_in_parent_folders("environment.hcl"))
 
-  blockchain  = "ethereum" #"ethereum"
-  network     = "mainnet"
-  openethereum_version    = "v3.3.3"
-
-  environment = "prod"
-  # ami_id = "ami-0ed9277fb7eb570c9"
-
-  key_name              = "vlad"
-  image_id              = "ami-0ed9277fb7eb570c9"
-  instance_type         = "t3.nano"
-
-  name = "${local.blockchain}-${local.network}-${local.environment}"
-
+  name = "${local.env.inputs.node_to_run}-${local.env.inputs.ethereum_network}-${local.env.inputs.environment}"
 }
 dependency "vpc" {
   config_path = "../../vpc"
@@ -41,7 +22,7 @@ dependency "iam" {
   config_path = "../../ec2-iam-role"
 }
 dependency "nlb" {
-  config_path = "../ethereum-mainnet-prod-nlb"
+  config_path = "../nlb"
 }
 
 inputs = {
@@ -54,14 +35,16 @@ inputs = {
   max_size                  = 1
   desired_capacity          = 1
   # wait_for_capacity_timeout = 0
-  health_check_type         = "EC2"
+  health_check_type         = "ELB"
+  health_check_grace_period = local.env.inputs.asg_health_check_grace_period # !!!!!!!
   target_group_arns = dependency.nlb.outputs.target_group_arns
   # Launch template
   user_data_base64 = base64encode(templatefile("../../../templates/userdata.sh", {
-    blockchain              = "${local.blockchain}"
-    docker_compose_filename = "dc-openethereum-${local.blockchain}.yaml"
-    # network                 = "mainnet"
-    openethereum_version    = "${local.openethereum_version}"
+    backup_s3            = local.env.inputs.backup_s3
+    node_to_run          = local.env.inputs.node_to_run
+    ethereum_network     = local.env.inputs.ethereum_network
+    openethereum_version = local.env.inputs.openethereum_version
+    chainlink_version    = local.env.inputs.chainlink_version
   }))
 
   use_lt                 = true
@@ -69,23 +52,23 @@ inputs = {
   update_default_version = true
 
   lt_name               = "${local.name}-lt"
-  key_name              = "${local.key_name}"
-  image_id              = "${local.image_id}"
-  instance_type         = "${local.instance_type}"
+  key_name              = local.env.inputs.key_name
+  image_id              = local.env.inputs.image_id
+  instance_type         = local.env.inputs.instance_type
 
   iam_instance_profile_arn = dependency.iam.outputs.iam_instance_profile_arn
-  # block_device_mappings = [
-  #  {
-  #     device_name = "/dev/sdb"
-  #     no_device   = 1
-  #     ebs = {
-  #       delete_on_termination = true
-  #       encrypted             = false
-  #       volume_size           = 500
-  #       volume_type           = "gp2"
-  #     }
-  #   }
-  # ]
+  block_device_mappings = [
+   {
+      device_name = "/dev/sdb"
+      no_device   = 1
+      ebs = {
+        delete_on_termination = true
+        encrypted             = false
+        volume_size           = 500
+        volume_type           = "gp2"
+      }
+    }
+  ]
   # enable_monitoring = true
 
   # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-optimized.html
@@ -123,7 +106,7 @@ inputs = {
   // ]
 
   // placement = {
-  //   availability_zone = "${local.region}b"
+  //   availability_zone = "${local.env.inputs.region}b"
   // }
 
   # instance_refresh = {
@@ -144,15 +127,15 @@ inputs = {
   //   },
   //   {
   //     resource_type = "volume"
-  //     tags          = merge({ WhatAmI = "Volume" }, local.tags_as_map)
+  //     tags          = merge({ WhatAmI = "Volume" }, local.env.inputs.tags_as_map)
   //   },
   //   {
   //     resource_type = "spot-instances-request"
-  //     tags          = merge({ WhatAmI = "SpotInstanceRequest" }, local.tags_as_map)
+  //     tags          = merge({ WhatAmI = "SpotInstanceRequest" }, local.env.inputs.tags_as_map)
   //   }
   // ]
 
-  // tags        = local.tags
-  // tags_as_map = local.tags_as_map
+  // tags        = local.env.inputs.tags
+  // tags_as_map = local.env.inputs.tags_as_map
 
 }
