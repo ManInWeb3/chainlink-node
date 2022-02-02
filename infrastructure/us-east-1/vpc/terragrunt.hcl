@@ -1,6 +1,6 @@
 terraform {
   source = "git::git@github.com:terraform-aws-modules/terraform-aws-vpc.git?ref=v3.11.0"
-  // source = "../../..//modules/terraform-aws-vpc"
+
 }
 
 include {
@@ -13,11 +13,10 @@ inputs = {
 
   cidr = "10.1.0.0/16"
 
-  azs             = ["us-east-1a", "us-east-1b"]
-  private_subnets = ["10.1.1.0/24", "10.1.2.0/24"]
-  public_subnets  = ["10.1.101.0/24"]
-
-  // database_subnets
+  azs              = ["us-east-1a"   , "us-east-1b"  ]
+  private_subnets  = ["10.1.1.0/24"  , "10.1.2.0/24" ]
+  public_subnets   = ["10.1.101.0/24", "10.1.201.0/24"]
+  database_subnets = ["10.1.21.0/24" , "10.1.22.0/24"]
 
   enable_dns_support   = true
   enable_dns_hostnames = true
