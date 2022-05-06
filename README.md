@@ -1,3 +1,5 @@
+This is a first iteration of infra as code to run a HA Chanlink and Ethereum nodes on AWS. So it has issues, bugs ...
+
 # Chainlink oracle infra
 
 1. Creates a VPC, secirity groups and IAM policies to let VMs save data backups to S3 
