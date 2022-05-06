@@ -1,6 +1,5 @@
 terraform {
   source = "git::git@github.com:terraform-aws-modules/terraform-aws-security-group.git?ref=v4.8.0"
-  # source = "../../..//modules/terraform-aws-security-group"
 }
 
 include {
@@ -9,7 +8,7 @@ include {
 
 locals {
   # Allowed CIDRs ","
-  whitelist_cidrs = "121.98.71.0/24" 
+  whitelist_cidrs = "X.X.X.X/X" 
 }
 
 dependency "vpc" {
@@ -21,15 +20,6 @@ inputs = {
   use_name_prefix = false
   description = "Security group whitelist Chainlink Operator UI"
   vpc_id = dependency.vpc.outputs.vpc_id
-
-  # ingress_cidr_blocks = [
-  #   dependency.vpc.outputs.vpc_cidr_block,
-  #   "121.98.71.0/24"
-  # ]
-  # ingress_rules = [
-  #   "all-tcp",
-  #   "all-icmp",
-  # ]
 
   ingress_with_self = [{rule = "all-all"},]
 
