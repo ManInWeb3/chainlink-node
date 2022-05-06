@@ -8,8 +8,9 @@ include {
 }
 
 locals {
-  env = read_terragrunt_config(find_in_parent_folders("environment.hcl"))
-
+  env = merge(read_terragrunt_config(find_in_parent_folders("environment.hcl")),
+              read_terragrunt_config(find_in_parent_folders("node.hcl"))
+  )
   name = "${local.env.inputs.node_to_run}-${local.env.inputs.ethereum_network}-${local.env.inputs.environment}"
 }
 dependency "vpc" {
@@ -24,13 +25,16 @@ dependency "iam" {
 dependency "nlb" {
   config_path = "../nlb"
 }
+dependency "db" {
+  config_path = "../aurora"
+}
 
 inputs = {
   name = "${local.name}-asg"
   create_asg = true
 
   vpc_zone_identifier       = dependency.vpc.outputs.private_subnets
-  security_groups        = [dependency.sg.outputs.security_group_id]
+  security_groups           = [dependency.sg.outputs.security_group_id]
   min_size                  = 0
   max_size                  = 1
   desired_capacity          = 1
@@ -43,8 +47,17 @@ inputs = {
     backup_s3            = local.env.inputs.backup_s3
     node_to_run          = local.env.inputs.node_to_run
     ethereum_network     = local.env.inputs.ethereum_network
+    ethereum_url         = local.env.inputs.ethereum_url
+
+    db_name     = local.env.inputs.db_database_name
+    db_address  = dependency.db.outputs.cluster_endpoint
+    db_username = dependency.db.outputs.cluster_master_username
+    db_password = dependency.db.outputs.cluster_master_password
+
     openethereum_version = local.env.inputs.openethereum_version
     chainlink_version    = local.env.inputs.chainlink_version
+
+    aws_region  = local.env.inputs.aws_region
   }))
 
   use_lt                 = true
@@ -134,7 +147,7 @@ inputs = {
   //     tags          = merge({ WhatAmI = "SpotInstanceRequest" }, local.env.inputs.tags_as_map)
   //   }
   // ]
-
+  tags = [local.env.inputs.tags]
   // tags        = local.env.inputs.tags
   // tags_as_map = local.env.inputs.tags_as_map
 

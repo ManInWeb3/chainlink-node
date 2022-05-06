@@ -43,8 +43,18 @@ inputs = {
     backup_s3            = local.env.inputs.backup_s3
     node_to_run          = local.env.inputs.node_to_run
     ethereum_network     = local.env.inputs.ethereum_network
+    ethereum_url         = local.env.inputs.ethereum_url
+
+    db_name     = local.env.inputs.db_database_name
+    db_address  = ""
+    db_username = ""
+    db_password = ""
+
     openethereum_version = local.env.inputs.openethereum_version
     chainlink_version    = local.env.inputs.chainlink_version
+
+    aws_region  = local.env.inputs.aws_region
+
   }))
 
   use_lt                 = true

@@ -7,14 +7,7 @@ include {
 }
 
 locals {
-  // env_vars = merge(
-  //   yamldecode(
-  //     file(find_in_parent_folders("folder.yaml")),
-  //   ),
-  //   yamldecode(
-  //     file(find_in_parent_folders("project.yaml")),
-  //   )
-  // )
+  # env = read_terragrunt_config(find_in_parent_folders("environment.hcl"))
 
 }
 
@@ -29,6 +22,7 @@ inputs = {
   ]
   custom_role_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+    "arn:aws:iam::aws:policy/SecretsManagerReadWrite",  #ReadOnly is enough            
   ]
   // tags        = local.tags
 }
